@@ -4,6 +4,10 @@ A small native macOS app that writes social-media captions for your photos using
 
 Drop an image (or paste one from the clipboard), pick a style, and get five caption ideas you can copy with one click.
 
+<p align="center">
+  <img src="docs/screenshot.png" alt="Captioner showing five Poetic captions for a landscape image" width="600">
+</p>
+
 ## Features
 
 - **Drag & drop** an image file, or **paste** with ⌘V (works with copied images and copied image files from Finder)
