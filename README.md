@@ -15,6 +15,7 @@ Drop an image (or paste one from the clipboard), pick a style, and get five capt
 - **Drag & drop** an image file, or **paste** with ⌘V (works with copied images and copied image files from Finder)
 - **10 caption styles**: Funny, Thoughtful, Poetic, Minimal, Wholesome, Romantic, Nostalgic, Movie Trailer, Song Lyric Vibes, Pun
 - **Five suggestions per run**, with **Regenerate** (⌘↩) for a fresh batch. Changing the style regenerates automatically
+- **Rotate** sideways photos 90° clockwise (⌘R); captions refresh for the new orientation
 - **One-click copy** for each caption
 - **Private**: uses Apple's on-device foundation model, so your photos never leave your Mac
 - **Clear status messages** when Apple Intelligence is turned off, unsupported, or still downloading

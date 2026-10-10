@@ -39,6 +39,16 @@ final class CaptionViewModel: ObservableObject {
         }
     }
 
+    /// Rotates the image 90° clockwise and refreshes the captions. Generation is
+    /// briefly delayed so that several quick rotations only trigger one request.
+    func rotateClockwise() {
+        guard let cgImage = image?.cgImage(forProposedRect: nil, context: nil, hints: nil),
+              let rotated = cgImage.rotatedClockwise() else { return }
+        image = NSImage(cgImage: rotated, size: .zero)
+        captions = []
+        generate(after: .milliseconds(700))
+    }
+
     func copy(_ caption: String) {
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(caption, forType: .string)
@@ -49,15 +59,19 @@ final class CaptionViewModel: ObservableObject {
         }
     }
 
-    func generate() {
+    func generate() { generate(after: .zero) }
+
+    private func generate(after delay: Duration) {
         guard let cgImage = image?.cgImage(forProposedRect: nil, context: nil, hints: nil) else { return }
         task?.cancel()
         isGenerating = true
         errorMessage = nil
         let style = style
         task = Task {
-            defer { isGenerating = false }
+            // A cancelled task must not clear the spinner of the task that replaced it.
+            defer { if !Task.isCancelled { isGenerating = false } }
             do {
+                try await Task.sleep(for: delay)
                 let result = try await generator.captions(for: cgImage, style: style)
                 guard !Task.isCancelled else { return }
                 captions = result
@@ -66,6 +80,18 @@ final class CaptionViewModel: ObservableObject {
                 errorMessage = error.localizedDescription
             }
         }
+    }
+}
+
+extension CGImage {
+    func rotatedClockwise() -> CGImage? {
+        guard let context = CGContext(data: nil, width: height, height: width, bitsPerComponent: 8, bytesPerRow: 0,
+                                      space: CGColorSpace(name: CGColorSpace.sRGB)!,
+                                      bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return nil }
+        context.translateBy(x: 0, y: CGFloat(width))
+        context.rotate(by: -.pi / 2)
+        context.draw(self, in: CGRect(x: 0, y: 0, width: width, height: height))
+        return context.makeImage()
     }
 }
 
@@ -91,6 +117,11 @@ struct ContentView: View {
                 .fixedSize()
 
                 Spacer()
+
+                Button("Rotate", systemImage: "rotate.right", action: model.rotateClockwise)
+                    .help("Rotate 90° clockwise (⌘R)")
+                    .keyboardShortcut("r", modifiers: .command)
+                    .disabled(model.image == nil)
 
                 Button("Paste", systemImage: "doc.on.clipboard", action: model.pasteFromClipboard)
                     .keyboardShortcut("v", modifiers: .command)
