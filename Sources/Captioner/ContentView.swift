@@ -8,6 +8,10 @@ import UniformTypeIdentifiers
 final class CaptionViewModel: ObservableObject {
     @Published var image: NSImage?
     @Published var style: CaptionStyle = .funny
+    @Published var language: CaptionLanguage =
+        CaptionLanguage(rawValue: UserDefaults.standard.string(forKey: "language") ?? "") ?? .english {
+        didSet { UserDefaults.standard.set(language.rawValue, forKey: "language") }
+    }
     @Published var captions: [String] = []
     @Published var isGenerating = false
     @Published var errorMessage: String?
@@ -67,12 +71,13 @@ final class CaptionViewModel: ObservableObject {
         isGenerating = true
         errorMessage = nil
         let style = style
+        let language = language
         task = Task {
             // A cancelled task must not clear the spinner of the task that replaced it.
             defer { if !Task.isCancelled { isGenerating = false } }
             do {
                 try await Task.sleep(for: delay)
-                let result = try await generator.captions(for: cgImage, style: style)
+                let result = try await generator.captions(for: cgImage, style: style, language: language)
                 guard !Task.isCancelled else { return }
                 captions = result
             } catch {
@@ -116,6 +121,14 @@ struct ContentView: View {
                 .labelsHidden()
                 .fixedSize()
 
+                Picker("Language", selection: $model.language) {
+                    ForEach(CaptionLanguage.allCases) { Text($0.displayName).tag($0) }
+                }
+                .pickerStyle(.menu)
+                .labelsHidden()
+                .fixedSize()
+                .help("Caption language")
+
                 Spacer()
 
                 Button("Rotate", systemImage: "rotate.right", action: model.rotateClockwise)
@@ -133,6 +146,7 @@ struct ContentView: View {
                     .disabled(model.image == nil || model.isGenerating)
             }
             .onChange(of: model.style) { if model.image != nil { model.generate() } }
+            .onChange(of: model.language) { if model.image != nil { model.generate() } }
 
             captionList
         }

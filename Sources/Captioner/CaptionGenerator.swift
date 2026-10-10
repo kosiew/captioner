@@ -57,6 +57,34 @@ enum CaptionStyle: String, CaseIterable, Identifiable {
     }
 }
 
+enum CaptionLanguage: String, CaseIterable, Identifiable {
+    case english = "en"
+    case simplifiedChinese = "zh-Hans"
+    case traditionalChinese = "zh-Hant"
+
+    var id: Self { self }
+
+    /// Menu label, shown in the language itself.
+    var displayName: String {
+        switch self {
+        case .english: "English"
+        case .simplifiedChinese: "简体中文"
+        case .traditionalChinese: "繁體中文"
+        }
+    }
+
+    var guidance: String {
+        switch self {
+        case .english:
+            "Write every caption in English."
+        case .simplifiedChinese:
+            "Write every caption in Simplified Chinese (简体中文) only, using simplified characters. Use natural, idiomatic Chinese (wordplay, 谐音 and 成语 are welcome) rather than translating from English. Treat any word-count limits as a similarly short number of characters."
+        case .traditionalChinese:
+            "Write every caption in Traditional Chinese (繁體中文) only, using traditional characters. Use natural, idiomatic Chinese (wordplay, 諧音 and 成語 are welcome) rather than translating from English. Treat any word-count limits as a similarly short number of characters."
+        }
+    }
+}
+
 /// `{ captions: [String] }` with exactly 5 items. Built dynamically so the app
 /// compiles without the `@Generable` macro plugin (which ships only with Xcode).
 private let captionSchema: GenerationSchema = {
@@ -100,13 +128,14 @@ struct CaptionGenerator {
         }
     }
 
-    func captions(for image: CGImage, style: CaptionStyle) async throws -> [String] {
+    func captions(for image: CGImage, style: CaptionStyle, language: CaptionLanguage) async throws -> [String] {
         if let reason = unavailableReason { throw CaptionError.unavailable(reason) }
 
         let session = LanguageModelSession(model: model, instructions: """
             You are a creative social-media caption writer.
             \(style.guidance)
             Never use hashtags. Never describe the image literally like 'This image shows'. Each caption must be different in angle.
+            \(language.guidance)
             """)
         let options = GenerationOptions(temperature: 0.9)
 

@@ -14,6 +14,7 @@ Drop an image (or paste one from the clipboard), pick a style, and get five capt
 
 - **Drag & drop** an image file, or **paste** with ⌘V (works with copied images and copied image files from Finder)
 - **10 caption styles**: Funny, Thoughtful, Poetic, Minimal, Wholesome, Romantic, Nostalgic, Movie Trailer, Song Lyric Vibes, Pun
+- **3 languages**: English, Simplified Chinese (简体中文) and Traditional Chinese (繁體中文). Your choice is remembered
 - **Five suggestions per run**, with **Regenerate** (⌘↩) for a fresh batch. Changing the style regenerates automatically
 - **Rotate** sideways photos 90° clockwise (⌘R); captions refresh for the new orientation
 - **One-click copy** for each caption
@@ -29,6 +30,8 @@ Drop an image (or paste one from the clipboard), pick a style, and get five capt
 | Poetic | "Columns of calm / beneath a painted sky." |
 | Minimal | "soft light rhythm" |
 | Movie Trailer | "A single hue. A single drop. The unraveling of the familiar." |
+| Funny (繁體中文) | "這張圖的節奏，比我的早晨還混亂。" |
+| Minimal (简体中文) | "光影的低语" |
 
 ## Requirements
 
@@ -71,7 +74,7 @@ swift run
 ```
 
 1. The image is converted to a `CGImage`.
-2. A `LanguageModelSession` is created with instructions specific to the chosen `CaptionStyle`.
+2. A `LanguageModelSession` is created with instructions specific to the chosen `CaptionStyle` and `CaptionLanguage`.
 3. If the on-device model supports image input (`capabilities.contains(.vision)`), the image is attached to the prompt directly.
 4. Otherwise the app falls back to the **Vision** framework (image classification, face detection, text recognition) and sends a text description instead.
 5. **Guided generation** with a JSON-style schema makes the model return exactly five captions, so no fragile text parsing is needed.
@@ -116,6 +119,10 @@ Add a case to `CaptionStyle` in `Sources/Captioner/CaptionGenerator.swift` and p
 - writing instructions in `guidance`
 
 It appears in the style menu automatically.
+
+## Adding a language
+
+Add a case to `CaptionLanguage` in the same file, with a `displayName` (written in that language) and `guidance` telling the model to write in it. The on-device model supports around two dozen languages. `SystemLanguageModel.default.supportedLanguages` lists them.
 
 ## Troubleshooting
 
