@@ -6,7 +6,8 @@ cd "${0:A:h}"
 swift build -c release
 APP=Captioner.app
 rm -rf "$APP"
-mkdir -p "$APP/Contents/MacOS"
+mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
+cp Resources/AppIcon.icns "$APP/Contents/Resources/"
 cp "$(swift build -c release --show-bin-path)/Captioner" "$APP/Contents/MacOS/"
 
 cat > "$APP/Contents/Info.plist" <<PLIST
@@ -18,6 +19,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
     <key>CFBundleDisplayName</key><string>Captioner</string>
     <key>CFBundleIdentifier</key><string>com.kosiew.captioner</string>
     <key>CFBundleExecutable</key><string>Captioner</string>
+    <key>CFBundleIconFile</key><string>AppIcon</string>
     <key>CFBundlePackageType</key><string>APPL</string>
     <key>CFBundleShortVersionString</key><string>1.0</string>
     <key>CFBundleVersion</key><string>1</string>

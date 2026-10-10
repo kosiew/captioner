@@ -1,3 +1,5 @@
+<img src="docs/icon.png" alt="Captioner icon" width="128" align="right">
+
 # Captioner
 
 A small native macOS app that writes social-media captions for your photos using **Apple Intelligence**, entirely on-device.
@@ -87,10 +89,21 @@ If you have Xcode installed, you can switch to the macro versions.
 ```
 Package.swift                         SwiftPM manifest (macOS 27+)
 build-app.sh                          Builds and packages Captioner.app
+scripts/make-icon.swift               Draws the app icon and writes Resources/AppIcon.icns
+Resources/AppIcon.icns                Generated app icon
 Sources/Captioner/
   CaptionerApp.swift                  App entry point and window setup
   ContentView.swift                   UI: drop zone, paste, style menu, caption list
   CaptionGenerator.swift              Caption styles, prompts, Apple Intelligence calls, Vision fallback
+```
+
+## App icon
+
+The icon is drawn in code. To change it, edit `scripts/make-icon.swift` and run:
+
+```sh
+swift scripts/make-icon.swift   # regenerates Resources/AppIcon.icns and docs/icon.png
+./build-app.sh
 ```
 
 ## Adding a caption style
