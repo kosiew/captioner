@@ -1,0 +1,4 @@
+.build/
+Captioner.app/
+.DS_Store
+.swiftpm/
