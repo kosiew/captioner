@@ -53,6 +53,14 @@ final class CaptionViewModel: ObservableObject {
         generate(after: .milliseconds(700))
     }
 
+    func clear() {
+        task?.cancel()
+        image = nil
+        captions = []
+        errorMessage = nil
+        isGenerating = false  // the cancelled task leaves this to its replacement, and there is none
+    }
+
     func copy(_ caption: String) {
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(caption, forType: .string)
@@ -131,11 +139,6 @@ struct ContentView: View {
 
                 Spacer()
 
-                Button("Rotate", systemImage: "rotate.right", action: model.rotateClockwise)
-                    .help("Rotate 90° clockwise (⌘R)")
-                    .keyboardShortcut("r", modifiers: .command)
-                    .disabled(model.image == nil)
-
                 Button("Paste", systemImage: "doc.on.clipboard", action: model.pasteFromClipboard)
                     .keyboardShortcut("v", modifiers: .command)
 
@@ -166,6 +169,8 @@ struct ContentView: View {
                     .scaledToFit()
                     .clipShape(RoundedRectangle(cornerRadius: 10))
                     .padding(8)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .overlay(alignment: .topTrailing) { imageActions }
             } else {
                 VStack(spacing: 8) {
                     Image(systemName: "photo.on.rectangle.angled")
@@ -180,6 +185,24 @@ struct ContentView: View {
         }
         .frame(minHeight: 260)
         .onDrop(of: [.fileURL, .image], isTargeted: $model.isDropTargeted, perform: handleDrop)
+    }
+
+    /// Rotate and clear, shown over the image's corner.
+    private var imageActions: some View {
+        HStack(spacing: 2) {
+            Button("Rotate", systemImage: "rotate.right", action: model.rotateClockwise)
+                .help("Rotate 90° clockwise (⌘R)")
+                .keyboardShortcut("r", modifiers: .command)
+            Button("Clear", systemImage: "xmark", action: model.clear)
+                .help("Remove the image (⌘⌫)")
+                .keyboardShortcut(.delete, modifiers: .command)
+        }
+        .labelStyle(.iconOnly)
+        .buttonStyle(.borderless)
+        .font(.title3)
+        .padding(6)
+        .background(.regularMaterial, in: Capsule())
+        .padding(16)
     }
 
     @ViewBuilder
