@@ -132,6 +132,7 @@ Add a case to `CaptionLanguage` in the same file, with a `displayName` (written 
 | "The Apple Intelligence model is still downloading…" | Wait for the download to finish, then press Regenerate |
 | "This Mac doesn't support Apple Intelligence." | Requires an Apple silicon Mac that supports Apple Intelligence |
 | "The clipboard doesn't contain an image." | Copy an image (or an image file in Finder) before pasting |
+| "Apple Intelligence didn't respond…" | The system model occasionally stalls. Captioner retries once automatically; press Regenerate to try again |
 
 Because the app is ad-hoc signed, opening a copy built on another Mac may trigger Gatekeeper. Build it locally, or right-click → **Open**.
 

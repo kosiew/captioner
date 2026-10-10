@@ -1,4 +1,5 @@
 import CoreGraphics
+import Synchronization
 import FoundationModels
 import Vision
 
@@ -101,10 +102,12 @@ private let captionSchema: GenerationSchema = {
 
 enum CaptionError: LocalizedError {
     case unavailable(String)
+    case timedOut
 
     var errorDescription: String? {
         switch self {
         case .unavailable(let reason): reason
+        case .timedOut: "Apple Intelligence didn't respond. Press Regenerate to try again."
         }
     }
 }
@@ -128,9 +131,22 @@ struct CaptionGenerator {
         }
     }
 
+    /// A normal request takes 2–3 seconds, but the system model service occasionally
+    /// stalls indefinitely. Give each attempt a deadline and retry once with a new session.
     func captions(for image: CGImage, style: CaptionStyle, language: CaptionLanguage) async throws -> [String] {
         if let reason = unavailableReason { throw CaptionError.unavailable(reason) }
+        do {
+            return try await withTimeout(.seconds(20)) {
+                try await attempt(image: image, style: style, language: language)
+            }
+        } catch CaptionError.timedOut {
+            return try await withTimeout(.seconds(20)) {
+                try await attempt(image: image, style: style, language: language)
+            }
+        }
+    }
 
+    private func attempt(image: CGImage, style: CaptionStyle, language: CaptionLanguage) async throws -> [String] {
         let session = LanguageModelSession(model: model, instructions: """
             You are a creative social-media caption writer.
             \(style.guidance)
@@ -156,6 +172,63 @@ struct CaptionGenerator {
         return try response.content.value([String].self, forProperty: "captions")
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines.union(.init(charactersIn: "\""))) }
             .filter { !$0.isEmpty }
+    }
+}
+
+/// Runs `operation`, throwing `CaptionError.timedOut` if it doesn't finish within
+/// `limit`. Returns at the deadline even if `operation` ignores cancellation, so a
+/// stalled model request can't hang the caller. Cancelling the caller cancels `operation`.
+private func withTimeout<T: Sendable>(_ limit: Duration, _ operation: @escaping @Sendable () async throws -> T) async throws -> T {
+    let race = Race<T>()
+    return try await withTaskCancellationHandler {
+        try await withCheckedThrowingContinuation { continuation in
+            race.start(continuation, operation: operation, limit: limit)
+        }
+    } onCancel: {
+        race.finish(.failure(CancellationError()))
+    }
+}
+
+/// First result wins: the operation, the timer, or outer cancellation.
+private final class Race<T: Sendable>: Sendable {
+    private struct State {
+        var continuation: CheckedContinuation<T, Error>?
+        var tasks: [Task<Void, Never>] = []
+        var pending: Result<T, Error>?
+    }
+    private let state = Mutex(State())
+
+    func start(_ continuation: CheckedContinuation<T, Error>, operation: @escaping @Sendable () async throws -> T, limit: Duration) {
+        let work = Task { [self] in finish(await Result { try await operation() }) }
+        let timer = Task { [self] in
+            if (try? await Task.sleep(for: limit)) != nil { finish(.failure(CaptionError.timedOut)) }
+        }
+        let early = state.withLock { s -> Result<T, Error>? in
+            s.tasks = [work, timer]
+            if let pending = s.pending { return pending }  // cancelled before we started
+            s.continuation = continuation
+            return nil
+        }
+        if let early {
+            work.cancel(); timer.cancel()
+            continuation.resume(with: early)
+        }
+    }
+
+    func finish(_ result: Result<T, Error>) {
+        let (continuation, tasks) = state.withLock { s in
+            defer { s.continuation = nil; if s.pending == nil { s.pending = result } }
+            return (s.continuation, s.tasks)
+        }
+        guard let continuation else { return }
+        tasks.forEach { $0.cancel() }
+        continuation.resume(with: result)
+    }
+}
+
+private extension Result where Failure == Error {
+    init(catching body: () async throws -> Success) async {
+        do { self = .success(try await body()) } catch { self = .failure(error) }
     }
 }
 

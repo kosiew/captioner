@@ -143,7 +143,7 @@ struct ContentView: View {
                        systemImage: "apple.intelligence", action: model.generate)
                     .buttonStyle(.borderedProminent)
                     .keyboardShortcut(.return, modifiers: .command)
-                    .disabled(model.image == nil || model.isGenerating)
+                    .disabled(model.image == nil)
             }
             .onChange(of: model.style) { if model.image != nil { model.generate() } }
             .onChange(of: model.language) { if model.image != nil { model.generate() } }
